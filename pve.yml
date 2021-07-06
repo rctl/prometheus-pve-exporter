@@ -1,4 +1,5 @@
 default:
+  target: 127.0.0.1
   user: prometheus@pve
   password: sEcr3T!
   verify_ssl: false

@@ -31,6 +31,8 @@ COPY --from=builder /opt /opt
 RUN pip3 install --no-cache-dir --no-index /opt/*py3-none-any.whl && \
     rm /opt/*py3-none-any.whl
 
+ADD pve.yml /etc/pve.yml
+
 USER nobody
 
 EXPOSE 9221

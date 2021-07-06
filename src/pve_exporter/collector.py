@@ -310,10 +310,10 @@ class ClusterNodeConfigCollector:
 
         return metrics.values()
 
-def collect_pve(config, host, options: CollectorsOptions):
+def collect_pve(config, options: CollectorsOptions):
     """Scrape a host and return prometheus text format for it"""
-
-    pve = ProxmoxAPI(host, **config)
+    host = config["target"]
+    pve = ProxmoxAPI(host, **{k: v for k, v in config.items() if k != "target"})
 
     registry = CollectorRegistry()
     if options.status:

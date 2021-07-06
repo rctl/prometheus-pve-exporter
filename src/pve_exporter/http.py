@@ -5,7 +5,7 @@ HTTP API for Proxmox VE prometheus collector.
 import logging
 import time
 
-from prometheus_client import CONTENT_TYPE_LATEST, Summary, Counter, generate_latest
+from prometheus_client import CONTENT_TYPE_LATEST, Summary, Counter
 from werkzeug.routing import Map, Rule
 from werkzeug.serving import run_simple
 from werkzeug.wrappers import Request, Response
@@ -28,30 +28,20 @@ class PveExporterApplication:
 
         self._log = logging.getLogger(__name__)
 
-    def on_pve(self, module='default', target='localhost'):
+    def on_metrics(self, target):
         """
-        Request handler for /pve route
+        Request handler for /[target]/metrics route
         """
 
-        if module in self._config:
+        if target in self._config:
             start = time.time()
-            output = collect_pve(self._config[module], target, self._collectors)
+            output = collect_pve(self._config[target], self._collectors)
             response = Response(output)
             response.headers['content-type'] = CONTENT_TYPE_LATEST
-            self._duration.labels(module).observe(time.time() - start)
+            self._duration.labels(target).observe(time.time() - start)
         else:
-            response = Response("Module '{0}' not found in config".format(module))
+            response = Response("Target '{0}' not found in config".format(target))
             response.status_code = 400
-
-        return response
-
-    def on_metrics(self):
-        """
-        Request handler for /metrics route
-        """
-
-        response = Response(generate_latest())
-        response.headers['content-type'] = CONTENT_TYPE_LATEST
 
         return response
 
@@ -65,7 +55,7 @@ class PveExporterApplication:
             <head><title>Proxmox VE Exporter</title></head>
             <body>
             <h1>Proxmox VE Exporter</h1>
-            <p>Visit <code>/pve?target=1.2.3.4</code> to use.</p>
+            <p>Visit <code>/[target]/metrics</code> to use.</p>
             </body>
             </html>"""
         )
@@ -79,13 +69,12 @@ class PveExporterApplication:
         """
 
         allowed_args = {
-            'pve': ['module', 'target']
+            'metrics': ['target']
         }
 
         view_registry = {
             'index': self.on_index,
             'metrics': self.on_metrics,
-            'pve': self.on_pve,
         }
 
         params = dict(values)
@@ -103,7 +92,7 @@ class PveExporterApplication:
     def __call__(self, request):
         url_map = Map([
             Rule('/', endpoint='index'),
-            Rule('/metrics', endpoint='metrics'),
+            Rule('/<string:target>/metrics', endpoint='metrics'),
             Rule('/pve', endpoint='pve'),
         ])
 
